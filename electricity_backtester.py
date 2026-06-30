@@ -194,12 +194,9 @@ class BacktestReporter:
         max_drawdown = np.max(drawdowns)
         
         # each action total counts
-        charge_events = self.df.filter(pl.col("Sim_Action") == "CHARGE").height
-        discharge_events = self.df.filter(pl.col("Sim_Action") == "DISCHARGE").height
+        charge_events = self.df.filter(pl.col("Sim_Action").str.starts_with("CHARGE")).height
+        discharge_events = self.df.filter(pl.col("Sim_Action").str.starts_with("DISCHARGE")).height
         hold_events = self.df.filter(pl.col("Sim_Action") == "HOLD").height
-        
-        # calculate physical asset health metrics (equivalent full cycles) - MEANING WHAT?????
-        total_mwh_charged = self.df.filter(pl.col("Sim_Action") == "CHARGE").height * (self.capacity / 12) # Approximate scaling if 5-min intervals
  
         soc_array = self.df["Sim_SoC_MWh"].to_numpy()
         soc_diffs = np.diff(soc_array)
@@ -264,7 +261,7 @@ class BacktestReporter:
         data_to_plot = []
         
         for act in actions:
-            prices = self.df.filter(pl.col("Sim_Action") == act)["RRP"].to_numpy()
+            prices = self.df.filter(pl.col("Sim_Action").str.starts_with(act))["RRP"].to_numpy()
             data_to_plot.append(prices if len(prices) > 0 else [0])
             
         plt.figure(figsize=(10, 5))
@@ -301,7 +298,7 @@ class BacktestReporter:
     
     def analyse_round_trips(self):
 
-        # cairs charges and discharges into discrete round-trip trades to calculate structural win rate and profit factor.
+        # pairs charges and discharges into discrete round-trip trades to calculate structural win rate and profit factor.
         actions = self.df["Sim_Action"].to_numpy()
         pnl_array = self.df["Sim_PnL"].to_numpy()
         
@@ -310,10 +307,10 @@ class BacktestReporter:
         in_position = False
         
         for i in range(len(actions)):
-            if actions[i] == "CHARGE":
-                current_trade_pnl += pnl_array[i] # Cash outflow/inflow recorded
+            if actions[i].startswith("CHARGE"):
+                current_trade_pnl += pnl_array[i] # cash outflow/inflow recorded
                 in_position = True
-            elif actions[i] == "DISCHARGE" and in_position:
+            elif actions[i].startswith("DISCHARGE") and in_position:
                 current_trade_pnl += pnl_array[i]
                 trades.append(current_trade_pnl)
                 current_trade_pnl = 0
