@@ -507,16 +507,28 @@ class PriceThresholdStrategy(BaseStrategy):
     def __init__(self):
         super().__init__()
 
+        self.last_price = None
+
     def compute_action(self, idx: int, current_price: float) -> float:
-        # on the very first row there's no previous price, so hold
-        if idx == 0:
+
+        # on the very first row, or if we haven't stored a price yet, hold
+        if idx == 0 or self.last_price is None:
+
+            self.last_price = current_price
+
             return 0.0 # HOLD
 
-        last_price = self.prices[idx - 1] if hasattr(self, 'prices') else current_price
+        price_to_evaluate = self.last_price
+        
+        # cache the current price for the NEXT loop iteration
+        self.last_price = current_price
 
-        if last_price <= 0:
+        if price_to_evaluate <= 0:
             return -1.0 # CHARGE (max rate)
-        elif last_price > 70:
+        elif price_to_evaluate > 70:
             return 1.0 # DISCHARGE (max rate)
         else:
             return 0.0 # HOLD
+        
+
+
