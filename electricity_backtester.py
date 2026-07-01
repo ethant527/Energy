@@ -498,3 +498,25 @@ class TimeSeriesWalkForwardEngine:
             all_fold_results.append(fold_metrics)
             
         return all_fold_results
+    
+
+
+# example basic implimentation class for a threshold strategy
+class PriceThresholdStrategy(BaseStrategy):
+
+    def __init__(self):
+        super().__init__()
+
+    def compute_action(self, idx: int, current_price: float) -> float:
+        # on the very first row there's no previous price, so hold
+        if idx == 0:
+            return 0.0 # HOLD
+
+        last_price = self.prices[idx - 1] if hasattr(self, 'prices') else current_price
+
+        if last_price <= 0:
+            return -1.0 # CHARGE (max rate)
+        elif last_price > 70:
+            return 1.0 # DISCHARGE (max rate)
+        else:
+            return 0.0 # HOLD
